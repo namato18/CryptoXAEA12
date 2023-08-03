@@ -5,6 +5,11 @@ library(shinyjs)
 library(plotly)
 library(aws.s3)
 library(riingo)
+library(shinyWidgets)
+library(stringr)
+library(shinycssloaders)
+
+riingo_set_token("6fbd6ce7c9e035489f6238bfab127fcedbe34ac2")
 
 Sys.setenv(TZ="UTC")
 source("Funcs.R")
@@ -44,19 +49,33 @@ ui <- dashboardPage(
                   shinydashboard = TRUE
                 ),
                 box(title = "Predicted High, Low, Close", solidHeader = TRUE, status = "danger",
-                    infoBoxOutput("High", width = 6),
-                    infoBoxOutput("Low", width = 6),
-                    infoBoxOutput("Close", width = 6)
-                    ),
-                box(title = "Live Candle Chart", solidHeader = TRUE, status = "danger",
                     selectInput("selectCandle", "Select a Coin",choices = checkbox_list),
                     selectInput("selectTimeframe", "Select a Timeframe",choices = list("1 Hour" = "1hour",
                                                                                        "4 Hour" = "4hour",
                                                                                        "8 Hour" = "8hour",
                                                                                        "1 Day" = "1day")),
+                    actionBttn("predictButton",
+                               "Predict",
+                               icon = icon('chart-simple'),
+                               style = "jelly",
+                               color = "danger",
+                               block = TRUE),
+                    br(),
+                    br(),
+                    withSpinner(infoBoxOutput("High", width = 12)),
+                    withSpinner(infoBoxOutput("Low", width = 12)),
+                    withSpinner(infoBoxOutput("Close", width = 12))
+                    ),
+                
+                       box(title = "Live Candle Chart", solidHeader = TRUE, status = "danger",
+                           plotlyOutput('candlestickPlot')
+                       ),
+                box(title = "Predicted Break High/Low", solidHeader = TRUE, status = "danger",
+                    infoBoxOutput("BreakHigh", width = 12),
+                    infoBoxOutput("BreakLow", width = 12)
                     
-                    plotlyOutput('candlestickPlot')
                 )
+
               ))
     )
   )
@@ -66,12 +85,21 @@ ui <- dashboardPage(
 
 # Define server logic
 server <- function(input, output) {
+  
+  output$High = NULL
+  output$Low = NULL
+  output$Close = NULL
+  
   observeEvent(input$selectCandle, {
     output$candlestickPlot = renderPlotly(LivePlot(input$selectCandle, input$selectTimeframe))
   })
 
 observeEvent(input$selectTimeframe, {
   output$candlestickPlot = renderPlotly(LivePlot(input$selectCandle, input$selectTimeframe))
+})
+
+observeEvent(input$predictButton, {
+  predict.hlc(input$selectCandle, input$selectTimeframe, output)
 })
 
 }
