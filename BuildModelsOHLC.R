@@ -7,6 +7,8 @@ library(CandleStickPattern)
 library(dplyr)
 library(riingo)
 
+tic()
+
 out.names = c("Open","High","Low","Close")
 
 x = list.files(path = '../RiingoPulledData/',full.names = TRUE)
@@ -35,11 +37,47 @@ for(i in 1:length(file.names)){
     ############################### ADD IN MOVING AVERAGES
     df$MA10 = NA
     df$MA20 = NA
+    df$VMA20 = NA
     
     for(k in 21:nrow(df)){
       df$MA10[k] = mean(df$Close[k-10:k])
       df$MA20[k] = mean(df$Close[k-20:k])
+      df$VMA20[k]= mean(df$Volume[k-20:k])
     }
+    
+    ###############################
+    ############################### ADD IN CHECKS FOR CLOSING VALUES
+    C1 = rep(0, nrow(df))
+    C2 = rep(0, nrow(df))
+    C3 = rep(0, nrow(df))
+    
+    for(k in 4:nrow(df)){
+      if(df$Close[k] > df$Close[k-1]){
+        C1[k] = 1
+      }
+      if(df$Close[k-1] > df$Close[k-2]){
+        C2[k] = 1
+      }
+      if(df$Close[k-2] > df$Close[k-3]){
+        C3[k] = 1
+      }
+    }
+    
+    df$P3C = C1 + C2 + C3
+    
+    ###############################
+    ############################### ADD IN ADDITIONAL LAG VALUES
+    df$CloseLag1 = Lag(df$Close, 1)
+    df$CloseLag2 = Lag(df$Close, 2)
+    
+    df$OpenLag1 = Lag(df$Open, 1)
+    df$OpenLag2 = Lag(df$Open, 2)
+    
+    df$HighLag1 = Lag(df$High, 1)
+    df$HighLag2 = Lag(df$High, 2)
+    
+    df$LowLag1 = Lag(df$Low, 1)
+    df$LowLag2 = Lag(df$Low, 2)
     
     ###############################
     ############################### DEFINE OTHER INPUT VALUES
@@ -51,6 +89,9 @@ for(i in 1:length(file.names)){
     df$HMA = (df$High - df$MA20)/ df$MA20 * 100
     df$LMA = (df$Low - df$MA20)/ df$MA20 * 100
     df$CMA = (df$Close - df$MA20)/ df$MA20 * 100
+    
+    lag1Vol = Lag(df$Volume, 1)
+    df$VolumeD = (df$Volume - lag1Vol)/df$Volume * 100
     
     ###############################
     ############################### DETERMINE OUTCOME VALUES
@@ -84,6 +125,7 @@ for(i in 1:length(file.names)){
     BreakH = BreakH[-c(1:20,length(BreakH))]
     NextOut = NextOut[-c(1:20,length(NextOut))]
     
+    df = df[,1:21]
     
     ###############################
     ############################### ROUND ALL INPUTS TO 2 DIGITS
@@ -119,7 +161,7 @@ for(i in 1:length(file.names)){
     pred = predict(bst, test)
     
     compare = data.frame(cbind(outcome.test, pred))
-    saveRDS(compare, file = paste0("../bsts-8-1-2023/","compare_",file.names[i],"_",out.names[j-1],".rds"))
+    saveRDS(compare, file = paste0("../bsts-8-3-2023/","compare_",file.names[i],"_",out.names[j-1],".rds"))
     # 
     #   compare$residuals = compare$outcome.test - compare$pred
     #   dmean2 = sum((compare$outcome.test - mean(compare$outcome.test))^2)
@@ -132,7 +174,9 @@ for(i in 1:length(file.names)){
     #   mse = mean((compare$residuals^2))
     #   rmse = (mean((compare$residuals^2)))^(1/2)
     
-    saveRDS(bst, file = paste0("../bsts-8-1-2023/","bst_",file.names[i],"_",out.names[j-1],".rds"))
+    saveRDS(bst, file = paste0("../bsts-8-3-2023/","bst_",file.names[i],"_",out.names[j-1],".rds"))
     print(paste0(file.names[i],"_",out.names[j-1]))
   }
 }
+
+toc()
