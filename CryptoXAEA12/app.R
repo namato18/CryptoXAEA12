@@ -34,8 +34,10 @@ ui <- dashboardPage(
   
   dashboardSidebar(
     sidebarMenu(
-      menuItem(text = "Test", tabName = "create", icon = icon("house")),
-      menuItem(text = "More Info", tabName = "info", icon = icon("circle-info"))
+      menuItem(text = "Predict", tabName = "predict", icon = icon("robot")),
+      menuItem(text = "Additional Model Info", tabName = "create", icon = icon("magnifying-glass-chart")),
+      menuItem(text = "Back-Test", tabName = "backtest", icon = icon("vial-circle-check")),
+      menuItem(text = "General Info", tabName = "info", icon = icon("circle-info"))
     )
   ),
   
@@ -45,6 +47,34 @@ ui <- dashboardPage(
       theme = "flat_red"
     ),
     tabItems(
+      tabItem(tabName = "predict",
+        fluidRow(
+          add_busy_spinner(spin = "circle", color = "white", height = "100px", width="100px", position = "top-right"),
+          column(width = 6,
+            box(title = "Inputs", solidHeader = TRUE, status = "danger", width = NULL,
+                selectInput("selectCandlePred", "Select a Coin",choices = checkbox_list),
+                selectInput("selectTimeframePred", "Select a Timeframe",choices = list("1 Hour" = "1hour",
+                                                                                       "4 Hour" = "4hour",
+                                                                                       "8 Hour" = "8hour",
+                                                                                       "1 Day" = "1day")),
+                actionButton("predictButtonPred","Predict", icon = icon('chart-simple'), class = class("danger"), style='padding:4px; width:100%')
+                
+            ),
+            box(title = "Prediction", solidHeader = TRUE, status = "danger", width = NULL,
+                infoBoxOutput("Prediction", width = 12),
+              
+            )
+          ),
+
+          column(width = 6,
+            box(title = "Live Candle Chart", solidHeader = TRUE, status = "danger", width = NULL,
+                plotlyOutput('candlestickPlotPred')
+            )
+          )
+
+        )
+      ),
+      
       tabItem(tabName = "create",
               fluidRow(
                 add_busy_spinner(spin = "circle", color = "white", height = "100px", width="100px", position = "top-right"),
@@ -92,18 +122,49 @@ ui <- dashboardPage(
                            plotlyOutput('candlestickPlot')
                        )
                 )
-                
-                
-                
-                
-                
-                
               )
       ),
+      tabItem(tabName = 'backtest',
+              fluidRow(
+                add_busy_spinner(spin = "circle", color = "white", height = "100px", width="100px", position = "top-right"),
+                img(src='logo.nobg.png', width = 175, height = 175, align = 'right' ),
+                
+                column(width = 6,
+                box(title = "Back-Test Inputs", solidHeader = TRUE, status = "danger", width = NULL,
+                    selectInput("selectBack", "Select a Coin",choices = checkbox_list),
+                    selectInput("selectTimeframeBack", "Select a Timeframe",choices = list("1 Hour" = "1hour",
+                                                                                       "4 Hour" = "4hour",
+                                                                                       "8 Hour" = "8hour",
+                                                                                       "1 Day" = "1day")),
+                    selectInput("selectPredictBack", "Select Prediction",choices = list("Break High" = "BreakH",
+                                                                                           "Break Low" = "BreakL",
+                                                                                           "Break 1%" = "Break1",
+                                                                                           "High" = "High",
+                                                                                           "Low" = "Low",
+                                                                                           "Close" = "Close")),
+                    actionButton("backTestButton","Predict", icon = icon('chart-simple'), class = class("danger"), style='padding:4px; width:100%')
+                    
+                    ),
+                box(title = "Histogram", solidHeader = TRUE, status = "danger", width = NULL,
+                    plotOutput("histogram")
+                )
+
+                ),
+
+                box(title = "Back-Test Metrics", solidHeader = TRUE, status = "danger",
+                    infoBoxOutput("precision", width = 12),
+                    infoBoxOutput("recall", width = 12),
+                    infoBoxOutput("f1", width = 12),
+                    
+                    infoBoxOutput("rmse", width = 12),
+                    infoBoxOutput("current.price", width = 12)
+                    
+                )
+              )
+        
+      ),
       tabItem(tabName = "info",
-              strong(h1("Additional Information")),
-              br(),
-              br(),
+              img(src='logo.nobg.png', width = 175, height = 175, align = 'right' ),
               box(title = "Method Used", solidHeader = TRUE, status = "danger",
                   strong("Machine Learning Model Used:"),
                   "XGBoost",
@@ -154,12 +215,16 @@ ui <- dashboardPage(
 # Define server logic
 server <- function(input, output) {
   
+  output$candlestickPlotPred = renderPlotly(LivePlot(input$selectCandlePred, input$selectTimeframePred))
+  
+  
   output$High = NULL
   output$Low = NULL
   output$Close = NULL
   output$oneperc = NULL
   output$BreakHigh = NULL
   output$BreakLow = NULL
+  
   
   
   observeEvent(input$selectCandle, {
@@ -171,9 +236,9 @@ server <- function(input, output) {
   })
   
   observeEvent(input$predictButton, {
-    predict.hlc(input$selectCandle, input$selectTimeframe)
-    predict.blbh(input$selectCandle, input$selectTimeframe)
-    predict.target(input$selectCandle, input$selectTimeframe)
+    predict.hlc(input$selectCandle, input$selectTimeframe, "detail")
+    predict.blbh(input$selectCandle, input$selectTimeframe, "detail")
+    predict.target(input$selectCandle, input$selectTimeframe, "detail")
     
     
     output$High = renderInfoBox({
@@ -196,31 +261,67 @@ server <- function(input, output) {
     output$oneperc = renderInfoBox({
       infoBox("Confidence to Break 1% Increase", text.perc1, icon = icon("arrow-trend-up"), color = "red")
     })
-    # output$Low = renderInfoBox({
-    #   infoBox("Predicted Low", predict.hlc(input$selectCandle, input$selectTimeframe, "Low"), icon = icon("arrow-trend-up"), color = "red")
-    # })
-    # output$Close = renderInfoBox({
-    #   infoBox("Predicted Close", predict.hlc(input$selectCandle, input$selectTimeframe, "Close"), icon = icon("arrow-trend-up"), color = "red")
-    # })
-    # output$High = renderInfoBox({
-    #   infoBox("Predicted High", predict.hlc(input$selectCandle, input$selectTimeframe, "High"), icon = icon("arrow-trend-up"), color = "red")
-    # })
-    # output$Low = renderInfoBox({
-    #   infoBox("Predicted Low", predict.hlc(input$selectCandle, input$selectTimeframe, "Low"), icon = icon("arrow-trend-up"), color = "red")
-    # })
-    # output$Close = renderInfoBox({
-    #   infoBox("Predicted Close", predict.hlc(input$selectCandle, input$selectTimeframe, "Close"), icon = icon("arrow-trend-up"), color = "red")
-    # })
-    # output$BreakHigh = renderInfoBox({
-    #   infoBox("Confidence Break High", predict.blbh(input$selectCandle, input$selectTimeframe, "BreakH"), icon = icon("arrow-trend-up"), color = "red")
-    # })
-    # output$BreakLow = renderInfoBox({
-    #   infoBox("Confidence Break Low", predict.blbh(input$selectCandle, input$selectTimeframe, "BreakL"), icon = icon("arrow-trend-up"), color = "red")
-    # })
-    # output$oneperc = renderInfoBox({
-    #   infoBox("Confidence Break 1% High", predict.target(input$selectCandle, input$selectTimeframe), icon = icon("arrow-trend-up"), color = "red")
-    # })
+
     
+  })
+  
+  observeEvent(input$backTestButton, {
+    BackTest(input$selectBack, input$selectTimeframeBack, input$selectPredictBack)
+    
+    if(input$selectPredictBack == "High" |input$selectPredictBack == "Low" |input$selectPredictBack == "Close"){
+      hide("precision")
+      hide("recall")
+      hide("f1")
+      shinyjs::show("rmse")
+      shinyjs::show("current.price")
+      hide("histogram")
+    }else{
+      shinyjs::show("precision")
+      shinyjs::show("recall")
+      shinyjs::show("f1")
+      shinyjs::show("histogram")
+      hide("rmse")
+      hide("current.price")
+    }
+    
+    output$precision = renderInfoBox({
+      infoBox("Precision", precision, icon = icon("arrow-trend-up"), color = "red")
+    })
+    output$recall = renderInfoBox({
+      infoBox("recall", recall, icon = icon("arrow-trend-up"), color = "red")
+    })
+    output$f1 = renderInfoBox({
+      infoBox("F1 Score", f1, icon = icon("arrow-trend-up"), color = "red")
+    })
+    output$rmse = renderInfoBox({
+      infoBox("RMSE", rmse, icon = icon("arrow-trend-up"), color = "red")
+    })
+    output$current.price = renderInfoBox({
+      infoBox("Current Price", current.price, icon = icon("arrow-trend-up"), color = "red")
+    })
+    output$histogram = renderPlot(p1)
+    
+  })
+  
+  observeEvent(input$predictButtonPred,{
+    predict.hlc(input$selectCandlePred, input$selectTimeframePred, "no detail")
+    predict.blbh(input$selectCandlePred, input$selectTimeframePred, "no detail")
+    predict.target(input$selectCandlePred, input$selectTimeframePred, "no detail")
+    MakePrediction(perc.close, perc.high, perc.low, pred.bh, pred.bl, pred.perc1, prev.high.perc, prev.low.perc)
+    
+    if(pred.count <= 0){
+      output$Prediction = renderInfoBox({
+        infoBox("Do Not Buy", pred.count, icon = icon("arrow-trend-up"), color = "red")
+      })
+    }else if(pred.count == 1){
+      output$Prediction = renderInfoBox({
+        infoBox("Unclear Decision", pred.count, icon = icon("arrow-trend-up"), color = "yellow")
+      })
+    }else{
+      output$Prediction = renderInfoBox({
+        infoBox("Buy Signal", pred.count, icon = icon("arrow-trend-up"), color = "green")
+      })
+    }
   })
   
 }

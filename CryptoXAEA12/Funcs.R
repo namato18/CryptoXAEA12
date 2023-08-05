@@ -51,7 +51,7 @@ LivePlot = function(symbol, timeframe){
 ##############################################################
 ##############################################################
 
-predict.hlc = function(symbol, timeframe){
+predict.hlc = function(symbol, timeframe, tab){
   # symbol = 'BTCUSDT'
   # timeframe = "1hour"
   # ohlc = "High"
@@ -207,9 +207,16 @@ predict.hlc = function(symbol, timeframe){
   text.low = paste0("$",round(pred.low, digits = 5), "(",perc.low,"%)")
   text.close = paste0("$",round(pred.close, digits = 5), "(",perc.close,"%)")
   
-  assign("text.high",text.high,.GlobalEnv)
-  assign("text.low",text.low,.GlobalEnv)
-  assign("text.close",text.close,.GlobalEnv)
+  if(tab == "detail"){
+    assign("text.high",text.high,.GlobalEnv)
+    assign("text.low",text.low,.GlobalEnv)
+    assign("text.close",text.close,.GlobalEnv)
+  }else{
+    assign("perc.high",perc.high,.GlobalEnv)
+    assign("perc.low",perc.low,.GlobalEnv)
+    assign("perc.close",perc.close,.GlobalEnv)
+  }
+
   
   
 
@@ -223,10 +230,10 @@ predict.hlc = function(symbol, timeframe){
 ##############################################################
 ##############################################################
 
-predict.blbh = function(symbol, timeframe){
+predict.blbh = function(symbol, timeframe, tab){
   # symbol = "BTCUSDT"
   # timeframe = "1hour"
-  # blbh = "BreakH"
+  # tab = "no detail"
   
   df1 = riingo_crypto_prices(symbol, start_date = Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = timeframe)
   df1 = df1[-nrow(df1),]
@@ -348,8 +355,17 @@ predict.blbh = function(symbol, timeframe){
   text.bh = paste0(pred.bh," (Previous High of ",prev.high.perc,"%)")
   text.bl = paste0(pred.bl," (Previous Low of ",prev.low.perc,"%)")
   
-  assign('text.bh',text.bh,.GlobalEnv)
-  assign('text.bl',text.bl,.GlobalEnv)
+  if(tab == "detail"){
+    assign('text.bh',text.bh,.GlobalEnv)
+    assign('text.bl',text.bl,.GlobalEnv)
+  }else{
+    assign('pred.bh',pred.bh,.GlobalEnv)
+    assign('pred.bl',pred.bl,.GlobalEnv)
+    assign("prev.low.perc",prev.low.perc,.GlobalEnv)
+    assign("prev.high.perc",prev.high.perc,.GlobalEnv)
+    
+  }
+
   
   
   # if(blbh == "BreakH"){
@@ -366,7 +382,7 @@ predict.blbh = function(symbol, timeframe){
 ##############################################################
 ##############################################################
 
-predict.target = function(symbol, timeframe){
+predict.target = function(symbol, timeframe,tab){
   # symbol = 'LINAUSDT'
   # timeframe = "1day"
   
@@ -459,8 +475,132 @@ predict.target = function(symbol, timeframe){
   
   pred = round(predict(bst1, df.m), digits = 3)
   
-  assign("text.perc1",pred,.GlobalEnv)
+  if(tab == "detail"){
+    assign("text.perc1",pred,.GlobalEnv)
+  }else{
+    assign("pred.perc1",pred,.GlobalEnv)
+  }
   
   # return(paste0(pred))
 
+}
+
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+
+# symbol = 'LINAUSDT'
+# timeframe = "1day"
+# prediction = "High"
+
+BackTest = function(symbol, timeframe, prediction){
+  
+  ###############################
+  ############################### GRAB ALL COMPARE DATASETS
+if(prediction == "BreakH" | prediction == "BreakL" | prediction == "Break1"){
+  if(prediction == "BreakH" | prediction == "BreakL"){
+    compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("compare_",symbol,"_",timeframe,prediction,".rds"))
+  }else{
+    sample.split = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("sample.split_",symbol,"_",timeframe,"1.rds"))
+    outcome = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("outcome_",symbol,"_",timeframe,"1.rds"))
+    test = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("test_",symbol,"_",timeframe,"1.rds"))
+    bst.1perc = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("bst_",symbol,"_",timeframe,"1.rds"))
+    
+    outcome.test = outcome[!sample.split]
+    pred.1perc = predict(bst.1perc, test)
+    
+    compare = data.frame(cbind(outcome.test,pred.1perc))
+  }
+  
+  df = compare
+  
+  colnames(df) = c("outcome.test","pred")
+  
+  df$decision = 0
+  df$decision[df$pred >= 0.5] = 1
+  
+  true.pos = length(which(df$outcome.test == 1 & df$decision == 1))
+  false.pos = length(which(df$outcome.test == 0 & df$decision == 1))
+  false.neg = length(which(df$outcome.test == 1 & df$decision == 0))
+  
+  
+  precision = true.pos / (true.pos + false.pos) * 100
+  recall = true.pos / (true.pos + false.neg) * 100
+  f1 = 2*((precision * recall)/(precision + recall))
+  
+  precision = round(precision, digits = 4)
+  recall = round(recall, digits = 4)
+  f1 = round(f1, digits = 4)
+  
+  p1 = ggplot(data = df, aes(x = pred)) + geom_histogram(color = "black", fill = "red", alpha = 0.3)
+  
+  assign("p1",p1,.GlobalEnv)
+  
+  assign("precision",precision, .GlobalEnv)
+  assign("recall",recall,.GlobalEnv)
+  assign("f1",f1,.GlobalEnv)
+  assign("rmse",NULL,.GlobalEnv)
+  assign("current.price",NULL,.GlobalEnv)
+  
+  
+  
+}else{
+  
+  compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("compare_",symbol,"_",timeframe,"_",prediction,".rds"))
+  
+  compare$error.sq = (compare$pred - compare$outcome.test)^2
+  rmse = round((mean(compare$error.sq))^(1/2),digits = 5)
+  
+  current.price = riingo::riingo_crypto_latest(symbol, resample_frequency = timeframe)
+  current.price = round(current.price$close[nrow(current.price)], digits = 5)
+  
+  assign("precision",NULL, .GlobalEnv)
+  assign("recall",NULL,.GlobalEnv)
+  assign("f1",NULL,.GlobalEnv)
+  assign("rmse",rmse,.GlobalEnv)
+  assign("current.price",current.price,.GlobalEnv)
+  
+  
+  
+}
+  
+}
+
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+
+MakePrediction = function(perc.close, perc.high, perc.low, pred.bh, pred.bl, pred.perc1, prev.high.perc, prev.low.perc){
+  pred.count = 0
+  
+  #####################
+  ##################### ADD CONDITIONS FOR BAD
+  if((perc.low*-1) > perc.high){
+    pred.count = pred.count - 1
+  }
+  if(pred.perc1 < 0.5){
+    pred.count = pred.count - 1
+  }
+  if(pred.bl > 0.5 & prev.low.perc*-1 > 0.5){
+    pred.count = pred.count - 1
+  }
+  
+  #####################
+  ##################### ADD CONDITIONS FOR GOOD
+  if((perc.low*-1) < perc.high & perc.high > 1){
+    pred.count = pred.count + 1
+  }
+  if(pred.perc1 > 0.5){
+    pred.count = pred.count + 1
+  }
+  if(pred.bh > 0.5 & prev.high.perc > 0.75){
+    pred.count = pred.count + 1
+  }
+  
+  assign("pred.count",pred.count,.GlobalEnv)
+  
 }
