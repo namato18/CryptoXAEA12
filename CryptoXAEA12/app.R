@@ -23,12 +23,7 @@ checkbox_list = setNames(str1, str1)
 
 # Define UI
 ui <- dashboardPage(
-  dashboardHeader(title = shinyDashboardLogo(
-    theme = "poor_mans_flatly",
-    boldText = "Crypto",
-    mainText = 'Predictor',
-    badgeText = "v1.0"
-  ),
+  dashboardHeader(title = img(src='logo.nobg.png', height = 30, width = 30, position = "right"),
   titleWidth = 300
   ),
   
@@ -49,6 +44,7 @@ ui <- dashboardPage(
     tabItems(
       tabItem(tabName = "predict",
         fluidRow(
+          img(src='logo.nobg.png', width = 100, height = 100, align = 'right' ),
           add_busy_spinner(spin = "circle", color = "white", height = "100px", width="100px", position = "top-right"),
           column(width = 6,
             box(title = "Inputs", solidHeader = TRUE, status = "danger", width = NULL,
@@ -62,6 +58,7 @@ ui <- dashboardPage(
             ),
             box(title = "Prediction", solidHeader = TRUE, status = "danger", width = NULL,
                 infoBoxOutput("Prediction", width = 12),
+                textOutput("predictionText")
               
             )
           ),
@@ -313,14 +310,17 @@ server <- function(input, output) {
       output$Prediction = renderInfoBox({
         infoBox("Do Not Buy", pred.count, icon = icon("arrow-trend-up"), color = "red")
       })
+      output$predictionText = renderText("The models are showing that buying during this candle would be a poor choice.")
     }else if(pred.count == 1){
       output$Prediction = renderInfoBox({
         infoBox("Unclear Decision", pred.count, icon = icon("arrow-trend-up"), color = "yellow")
       })
+      output$predictionText = renderText("The models are giving mixed signals on if buying during this candle would be profitable.")
     }else{
       output$Prediction = renderInfoBox({
         infoBox("Buy Signal", pred.count, icon = icon("arrow-trend-up"), color = "green")
       })
+      output$predictionText = renderText("The models are showing that buying at the beginning of this candle may prove proffitable.")
     }
   })
   
