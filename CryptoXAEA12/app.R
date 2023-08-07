@@ -45,9 +45,6 @@ ui <- dashboardPage(
   
   dashboardBody(
     shinyjs::useShinyjs(),
-    # shinyDashboardThemes(
-    #   theme = "flat_red"
-    # ),
     tabItems(
       tabItem(tabName = "predict",
         fluidPage(
@@ -66,7 +63,9 @@ ui <- dashboardPage(
             box(title = "Prediction", solidHeader = TRUE, status = "danger", width = NULL,background = "black",
                 valueBoxOutput("Prediction", width = 12),
                 textOutput("predictionText"),
-                textOutput("warningText")
+                textOutput("warningText"),
+                textOutput("infoText")
+                
               
             )
           ),
@@ -258,7 +257,7 @@ server <- function(input, output) {
       valueBox(subtitle = "Predicted Low",value = text.low, icon = icon("arrow-trend-up"), color = "red")
     })
     output$Close = renderValueBox({
-      valueBox(subtitle = "Predicted Close",value = text.close, icon = icon("arrow-trend-up"), color = "blue")
+      valueBox(subtitle = "Predicted Close",value = text.close, icon = icon("arrow-trend-up"), color = "orange")
     })
     
     output$BreakHigh = renderValueBox({
@@ -335,7 +334,8 @@ server <- function(input, output) {
       })
       output$predictionText = renderText("The models are showing that buying at the beginning of this candle may prove proffitable.")
     }
-    # output$warningText = renderText("Please note that these predictions should be used in confluence with other indicators.")
+    output$warningText = renderText("Please note that these predictions should be used in confluence with other indicators.")
+    output$infoText = renderText("For more info on the models, see the 'General Info' tab!")
   })
   
 }
