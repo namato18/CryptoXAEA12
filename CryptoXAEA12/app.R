@@ -85,8 +85,8 @@ ui <- dashboardPage(
       menuItem(text = "Predict", tabName = "predict", icon = icon("robot")),
       menuItem(text = "Additional Model Info", tabName = "create", icon = icon("magnifying-glass-chart")),
       menuItem(text = "Back-Test", tabName = "backtest", icon = icon("vial-circle-check")),
-      menuItem(text = "General Info", tabName = "info", icon = icon("circle-info")),
-      menuItem(text = "ChatGPT", tabName = "cgpt", icon = icon("robot"))
+      menuItem(text = "General Info", tabName = "info", icon = icon("circle-info"))
+      # menuItem(text = "ChatGPT", tabName = "cgpt", icon = icon("robot"))
     )
   ),
   
@@ -111,6 +111,9 @@ ui <- dashboardPage(
             ),
             box(title = "Prediction", solidHeader = TRUE, status = "danger", width = NULL,background = "black",
                 valueBoxOutput("Prediction", width = 12),
+                br(),
+                br(),
+                textOutput("noteText"),
                 textOutput("predictionText"),
                 textOutput("warningText"),
                 textOutput("infoText")
@@ -455,19 +458,19 @@ server <- function(input, output, session) {
     }
     
     output$precision = renderValueBox({
-      valueBox(subtitle = "Precision",value = precision, icon = icon("arrow-trend-up"), color = "red")
+      valueBox(subtitle = "Precision",value = precision, icon = icon("check"), color = "green")
     })
     output$recall = renderValueBox({
-      valueBox(subtitle = "recall",value = recall, icon = icon("arrow-trend-up"), color = "red")
+      valueBox(subtitle = "recall",value = recall, icon = icon("check"), color = "green")
     })
     output$f1 = renderValueBox({
-      valueBox(subtitle = "F1 Score",value = f1, icon = icon("arrow-trend-up"), color = "red")
+      valueBox(subtitle = "F1 Score",value = f1, icon = icon("check"), color = "green")
     })
     output$rmse = renderValueBox({
-      valueBox(subtitle = "RMSE",value = rmse, icon = icon("arrow-trend-up"), color = "red")
+      valueBox(subtitle = "RMSE",value = rmse, icon = icon("check"), color = "green")
     })
     output$current.price = renderValueBox({
-      valueBox(subtitle = "Current Price",value = current.price, icon = icon("arrow-trend-up"), color = "red")
+      valueBox(subtitle = "Current Price",value = current.price, icon = icon("check"), color = "green")
     })
     output$histogram = renderPlot(p1)
     
@@ -479,24 +482,25 @@ server <- function(input, output, session) {
     predict.target(input$selectCandlePred, input$selectTimeframePred, "no detail")
     MakePrediction(perc.close, perc.high, perc.low, pred.bh, pred.bl, pred.perc1, prev.high.perc, prev.low.perc)
     
-    if(pred.count <= 0){
+    if(pred.count < 0){
       output$Prediction = renderValueBox({
         valueBox(subtitle = "Do Not Buy",value = pred.count, icon = icon("arrow-trend-up"), color = "red")
       })
-      output$predictionText = renderText("The models are showing that buying during this candle would be a poor choice.")
-    }else if(pred.count == 1){
+      output$predictionText = renderText("- The models are showing that buying during this candle would be a poor choice.")
+    }else if(pred.count == 0 | pred.count == 1){
       output$Prediction = renderValueBox({
         valueBox(subtitle = "Unclear Decision", value = pred.count, icon = icon("arrow-trend-up"), color = "yellow")
       })
-      output$predictionText = renderText("The models are giving mixed signals on if buying during this candle would be profitable.")
+      output$predictionText = renderText("- The models are giving mixed signals on if buying during this candle would be profitable.")
     }else{
       output$Prediction = renderValueBox({
         valueBox(subtitle = "Buy Signal",value = pred.count, icon = icon("arrow-trend-up"), color = "green")
       })
-      output$predictionText = renderText("The models are showing that buying at the beginning of this candle may prove proffitable.")
+      output$predictionText = renderText("- The models are showing that buying at the beginning of this candle may prove proffitable.")
     }
-    output$warningText = renderText("Please note that these predictions should be used in confluence with other indicators.")
-    output$infoText = renderText("For more info on the models, see the 'General Info' tab!")
+    output$warningText = renderText("- Please note that these predictions should be used in confluence with other indicators.")
+    output$infoText = renderText("- For more info on the models, see the 'General Info' tab!")
+    output$noteText = renderText("- Note that the predictions range from -4 to 4. -4 for being a strong DON'T BUY signal, and 4 being a strong BUY signal.")
   })
   
 }

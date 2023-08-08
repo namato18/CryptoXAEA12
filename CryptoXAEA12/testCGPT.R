@@ -1,7 +1,7 @@
 library(httr)
 library(jsonlite)
 
-apiKey = "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"
+apiKey = ""
 prompt = "Hello, how many countries are there in the world?"
 
 response <- POST(

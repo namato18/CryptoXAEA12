@@ -444,6 +444,14 @@ predict.target = function(symbol, timeframe,tab){
   df = as.xts(df)
   
   candle.list = list(hammer(df), inverted.hammer(df), bearish.engulf(df), bullish.engulf(df), up.trend(df), down.trend(df))
+
+  down.trend.df = data.frame(down.trend(df))
+  up.trend.df = data.frame(up.trend(df))
+  down.trend.df = down.trend.df$Down.Trend[nrow(down.trend.df)]
+  up.trend.df = up.trend.df$Up.Trend[nrow(up.trend.df)]
+  
+  assign("up.trend",up.trend.df,.GlobalEnv)
+  assign("down.trend",down.trend.df,.GlobalEnv)
   
   for(k in 1:length(candle.list)){
     df = cbind(df, candle.list[[k]])
@@ -588,6 +596,9 @@ MakePrediction = function(perc.close, perc.high, perc.low, pred.bh, pred.bl, pre
   if(pred.bl > 0.5 & prev.low.perc*-1 > 0.5){
     pred.count = pred.count - 1
   }
+  if(down.trend == TRUE){
+    pred.count = pred.count - 1
+  }
   
   #####################
   ##################### ADD CONDITIONS FOR GOOD
@@ -598,6 +609,9 @@ MakePrediction = function(perc.close, perc.high, perc.low, pred.bh, pred.bl, pre
     pred.count = pred.count + 1
   }
   if(pred.bh > 0.5 & prev.high.perc > 0.75){
+    pred.count = pred.count + 1
+  }
+  if(up.trend == TRUE){
     pred.count = pred.count + 1
   }
   
