@@ -484,23 +484,23 @@ server <- function(input, output, session) {
     
     if(pred.count < 0){
       output$Prediction = renderValueBox({
-        valueBox(subtitle = "Do Not Buy",value = pred.count, icon = icon("arrow-trend-up"), color = "red")
+        valueBox(value = "Weak Signal",subtitle = "- The models are showing that buying during this candle may be a poor choice.", icon = icon("arrow-trend-up"), color = "red")
       })
-      output$predictionText = renderText("- The models are showing that buying during this candle would be a poor choice.")
+      # output$predictionText = renderText("- The models are showing that buying during this candle would be a poor choice.")
     }else if(pred.count == 0 | pred.count == 1){
       output$Prediction = renderValueBox({
-        valueBox(subtitle = "Unclear Decision", value = pred.count, icon = icon("arrow-trend-up"), color = "yellow")
+        valueBox(value = "Unclear Decision", subtitle = "- The models are giving mixed signals on if buying during this candle would be profitable.", icon = icon("arrow-trend-up"), color = "yellow")
       })
-      output$predictionText = renderText("- The models are giving mixed signals on if buying during this candle would be profitable.")
+      # output$predictionText = renderText("- The models are giving mixed signals on if buying during this candle would be profitable.")
     }else{
       output$Prediction = renderValueBox({
-        valueBox(subtitle = "Buy Signal",value = pred.count, icon = icon("arrow-trend-up"), color = "green")
+        valueBox(value = "Buy Signal",subtitle = "- The models are showing that buying at the beginning of this candle may prove proffitable.", icon = icon("arrow-trend-up"), color = "green")
       })
-      output$predictionText = renderText("- The models are showing that buying at the beginning of this candle may prove proffitable.")
+      # output$predictionText = renderText("- The models are showing that buying at the beginning of this candle may prove proffitable.")
     }
-    output$warningText = renderText("- Please note that these predictions should be used in confluence with other indicators.")
+    output$warningText = renderText("- Please note that these predictions should be used in confluence with other indicators. There is no magic indicator that is always right.")
     output$infoText = renderText("- For more info on the models, see the 'General Info' tab!")
-    output$noteText = renderText("- Note that the predictions range from -4 to 4. -4 for being a strong DON'T BUY signal, and 4 being a strong BUY signal.")
+    # output$noteText = renderText("- Note that the predictions range from -4 to 4. -4 for being a strong DON'T BUY signal, and 4 being a strong BUY signal.")
   })
   
 }
