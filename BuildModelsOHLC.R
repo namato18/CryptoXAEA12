@@ -13,6 +13,12 @@ out.names = c("Open","High","Low","Close")
 
 x = list.files(path = '../RiingoPulledData/',full.names = TRUE)
 file.names = list.files('../RiingoPulledData/')
+
+ind = grep(pattern = "2hour", x = file.names)
+
+x = x[ind]
+file.names = file.names[ind]
+
 file.names = str_replace(string = file.names, pattern = '.csv', replacement = "")
 ls.files = lapply(x, read.csv)
 
@@ -161,7 +167,7 @@ for(i in 1:length(file.names)){
     pred = predict(bst, test)
     
     compare = data.frame(cbind(outcome.test, pred))
-    saveRDS(compare, file = paste0("../bsts-8-3-2023/","compare_",file.names[i],"_",out.names[j-1],".rds"))
+    saveRDS(compare, file = paste0("../bsts-8-14-2023/","compare_",file.names[i],"_",out.names[j-1],".rds"))
     # 
     #   compare$residuals = compare$outcome.test - compare$pred
     #   dmean2 = sum((compare$outcome.test - mean(compare$outcome.test))^2)
@@ -174,7 +180,7 @@ for(i in 1:length(file.names)){
     #   mse = mean((compare$residuals^2))
     #   rmse = (mean((compare$residuals^2)))^(1/2)
     
-    saveRDS(bst, file = paste0("../bsts-8-3-2023/","bst_",file.names[i],"_",out.names[j-1],".rds"))
+    saveRDS(bst, file = paste0("../bsts-8-14-2023/","bst_",file.names[i],"_",out.names[j-1],".rds"))
     print(paste0(file.names[i],"_",out.names[j-1]))
   }
 }

@@ -1,5 +1,108 @@
 Sys.setenv(TZ="UTC")
 
+#################################################################################################################
+#################################################################################################################
+#################################################################################################################
+#################################################################################################################
+#################################################################################################################
+#################################################################################################################
+#################################################################################################################
+
+
+# CALC TIME TO NEXT CANDLE CLOSE
+getTimeRemaining = function(timeframe){
+  
+  utcTime = lubridate::now(tzone = 'UTC')
+  utcTime = format(utcTime, format = "%H:%M:%S")
+  
+  if(timeframe == "15min"){
+    hour.t = hours(chron(times=utcTime))
+    minutes.t = minutes(chron(times=utcTime))
+    
+    candle.times = floor(seq(from = 0, to = 60, by = 14.95))
+    
+    
+    ind = which(candle.times >= minutes.t)[1]
+    candle.t.ind = candle.times[ind]
+    
+    end.of.candle = chron(times=paste0(hour.t,":",candle.t.ind,":59"))
+    
+    remainingTime = end.of.candle - utcTime
+    return(remainingTime)
+  }
+  
+  if(timeframe == "1hour"){
+    hour.t = hours(chron(times=utcTime))
+    
+    end.of.candle = chron(times=paste0(hour.t,":59:59"))
+    
+    remainingTime = end.of.candle - utcTime
+    return(remainingTime)
+  }
+  
+  if(timeframe == "2hour"){
+    hour.t = hours(chron(times=utcTime))
+    
+    two.hrs = seq(from = 0, to = 24, by = 2)
+    
+    if(any(hour.t %in% two.hrs)){
+      end.of.candle = chron(times=paste0(as.numeric(hour.t)+1,":59:59"))
+    }else{
+      end.of.candle = chron(times=paste0(hour.t,":59:59"))
+    }
+    remainingTime = end.of.candle - utcTime
+    
+    return(remainingTime)
+  }
+  
+  if(timeframe == '4hour'){
+    if(utcTime >= chron(times="20:00:00")){
+      remainingTime = chron(times="23:59:59") - utcTime
+      return(remainingTime)
+    }
+    if(utcTime >= chron(times="16:00:00")){
+      remainingTime = chron(times="19:59:59") - utcTime
+      return(remainingTime)
+    }
+    if(utcTime >= chron(times="12:00:00")){
+      remainingTime = chron(times="15:59:59") - utcTime
+      return(remainingTime)
+    }
+    if(utcTime >= chron(times="08:00:00")){
+      remainingTime = chron(times="11:59:59") - utcTime
+      return(remainingTime)
+    }
+    if(utcTime >= chron(times="04:00:00")){
+      remainingTime = chron(times="7:59:59") - utcTime
+      return(remainingTime)
+    }
+    if(utcTime >= chron(times="00:00:00")){
+      remainingTime = chron(times="3:59:59") - utcTime
+      return(remainingTime)
+    }
+  }
+  if(timeframe == '8hour'){
+    if(utcTime >= chron(times="16:00:00")){
+      remainingTime = chron(times="23:59:59") - utcTime
+      return(remainingTime)
+    }
+    if(utcTime >= chron(times="08:00:00")){
+      remainingTime = chron(times="15:59:59") - utcTime
+      return(remainingTime)
+    }
+    if(utcTime >= chron(times="00:00:00")){
+      remainingTime = chron(times="7:59:59") - utcTime
+      return(remainingTime)
+    }
+  }
+  if(timeframe == '1day'){
+    remainingTime = chron(times="23:59:59") - utcTime
+    return(remainingTime)
+    
+  }
+  
+}
+
 ##############################################################
 ##############################################################
 ##############################################################
@@ -382,7 +485,7 @@ predict.blbh = function(symbol, timeframe, tab){
 ##############################################################
 ##############################################################
 
-predict.target = function(symbol, timeframe,tab){
+predict.target = function(symbol, timeframe,tab, target.percentage){
   # symbol = 'LINAUSDT'
   # timeframe = "1day"
   
@@ -479,7 +582,7 @@ predict.target = function(symbol, timeframe,tab){
   df = df[nrow(df)-1,-c(1:4)]
   df.m = as.matrix(df)
   
-  bst1 = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("bst_",symbol,"_",timeframe,"1.rds"))
+  bst1 = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/TiingoBoosts", object = paste0("bst_",symbol,"_",timeframe,target.percentage,".rds"))
   
   pred = round(predict(bst1, df.m), digits = 3)
   
@@ -542,7 +645,7 @@ if(prediction == "BreakH" | prediction == "BreakL" | prediction == "Break1"){
   recall = round(recall, digits = 4)
   f1 = round(f1, digits = 4)
   
-  p1 = ggplot(data = df, aes(x = pred)) + geom_histogram(color = "black", fill = "red", alpha = 0.3)
+  p1 = ggplot(data = df, aes(x = pred)) + geom_histogram(color = "black", fill = "blue", alpha = 0.3)
   
   assign("p1",p1,.GlobalEnv)
   
@@ -585,6 +688,10 @@ if(prediction == "BreakH" | prediction == "BreakL" | prediction == "Break1"){
 MakePrediction = function(perc.close, perc.high, perc.low, pred.bh, pred.bl, pred.perc1, prev.high.perc, prev.low.perc){
   pred.count = 0
   
+  target.percentage.adjust.good = round(pred.perc1 * 0.8, digits = 1)
+  target.percentage.adjust.bad = round(pred.perc1 * 0.6, digits = 1)
+  
+  
   #####################
   ##################### ADD CONDITIONS FOR BAD
   if((perc.low*-1) > perc.high){
@@ -593,7 +700,7 @@ MakePrediction = function(perc.close, perc.high, perc.low, pred.bh, pred.bl, pre
   if(pred.perc1 < 0.5){
     pred.count = pred.count - 1
   }
-  if(pred.bl > 0.5 & prev.low.perc*-1 > 0.5){
+  if(pred.bl > 0.5 & prev.low.perc*-1 > target.percentage.adjust.bad){
     pred.count = pred.count - 1
   }
   if(down.trend == TRUE){
@@ -608,7 +715,7 @@ MakePrediction = function(perc.close, perc.high, perc.low, pred.bh, pred.bl, pre
   if(pred.perc1 > 0.5){
     pred.count = pred.count + 1
   }
-  if(pred.bh > 0.5 & prev.high.perc > 0.75){
+  if(pred.bh > 0.5 & prev.high.perc > target.percentage.adjust.good){
     pred.count = pred.count + 1
   }
   if(up.trend == TRUE){
