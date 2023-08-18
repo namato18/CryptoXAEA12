@@ -87,8 +87,6 @@ source("Funcs.R")
 str1 = readRDS("tickers/str1.rds")
 
 checkbox_list = setNames(str1, str1)
-
-
 # Define UI
 ui <- dashboardPage(
   # skin = "blue",
@@ -96,7 +94,7 @@ ui <- dashboardPage(
   # dashboardHeader(
   #   title = "AI XAEA-12"
   # ),
-  title = "AI XAEA-12",
+  title = "Token Prediction",
   dashboardHeader(title = tags$a(tags$text("AI XAEA-12"),
                                  tags$img(src="logo.nobg.png",height="40",width="40"),
                                  style="color: white")),
@@ -127,6 +125,7 @@ ui <- dashboardPage(
     tabItems(
       tabItem(tabName = "predict",
         fluidPage(
+          tags$head(tags$link(rel="shortcut icon", href="favicon.png")),
           # theme = shinytheme("united"),
           add_busy_spinner(spin = "circle", color = "white", height = "100px", width="100px", position = "top-right"),
           column(width = 6,
@@ -172,11 +171,11 @@ ui <- dashboardPage(
       tabItem(tabName = "create",
               fluidRow(
                 add_busy_spinner(spin = "circle", color = "white", height = "100px", width="100px", position = "top-right"),
-                setBackgroundImage(
-                  # color = "white",
-                  src = "grey-umb.jpg",
-                  shinydashboard = TRUE
-                ),
+                # setBackgroundImage(
+                #   # color = "white",
+                #   src = "tesla.jpg",
+                #   shinydashboard = TRUE
+                # ),
                 column(width = 6,
                        box(title = "Inputs", solidHeader = TRUE, status = "primary", width = NULL,
                            selectInput("selectCandle", "Select a Coin",choices = checkbox_list),
