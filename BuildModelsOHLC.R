@@ -7,6 +7,16 @@ library(CandleStickPattern)
 library(dplyr)
 library(riingo)
 
+x2 = "BNB; ADA; SOL; SHIB; LTC; AVAX; STX; EOS; THETA; XTZ; FLOW; BTT; LUNC; FTT; CAKE; ROSE; CELO; SFP; GMT; WAVES; SC; STORJ; C98; SYS; STRAX; ARPA; COTI; UTK; KMD; TRB; FLOKI; RNDR; ETC"
+str1 = strsplit(x2, split = "; ")[[1]]
+str1 = paste0(str1,"usdt")
+str1 = toupper(str1)
+stock1 = readRDS("tickers/stock1.rds")
+comb.str = paste(str1, collapse = "|")
+comb.stock = paste(stock1, collapse = "|")
+
+comb = paste(comb.str, comb.stock,sep="|")
+
 tic()
 
 out.names = c("Open","High","Low","Close")
@@ -14,7 +24,7 @@ out.names = c("Open","High","Low","Close")
 x = list.files(path = '../RiingoPulledData/',full.names = TRUE)
 file.names = list.files('../RiingoPulledData/')
 
-ind = grep(pattern = "2hour", x = file.names)
+ind = grep(pattern = comb, x = file.names)
 
 x = x[ind]
 file.names = file.names[ind]
@@ -22,11 +32,13 @@ file.names = file.names[ind]
 file.names = str_replace(string = file.names, pattern = '.csv', replacement = "")
 ls.files = lapply(x, read.csv)
 
-for(i in 1:length(file.names)){
+for(i in 640:length(file.names)){
   for(j in 2:5){
   df = ls.files[[i]]
   
-  df = df[,-c(1:2,9:10)]
+  if(grepl("USDT", file.names[i])){
+    df = df[,-c(1:2,9:10)]
+  }
   
   
   ###############################
@@ -167,7 +179,7 @@ for(i in 1:length(file.names)){
     pred = predict(bst, test)
     
     compare = data.frame(cbind(outcome.test, pred))
-    saveRDS(compare, file = paste0("../bsts-8-14-2023/","compare_",file.names[i],"_",out.names[j-1],".rds"))
+    saveRDS(compare, file = paste0("../bsts-8-16-2023/","compare_",file.names[i],"_",out.names[j-1],".rds"))
     # 
     #   compare$residuals = compare$outcome.test - compare$pred
     #   dmean2 = sum((compare$outcome.test - mean(compare$outcome.test))^2)
@@ -180,7 +192,7 @@ for(i in 1:length(file.names)){
     #   mse = mean((compare$residuals^2))
     #   rmse = (mean((compare$residuals^2)))^(1/2)
     
-    saveRDS(bst, file = paste0("../bsts-8-14-2023/","bst_",file.names[i],"_",out.names[j-1],".rds"))
+    saveRDS(bst, file = paste0("../bsts-8-16-2023/","bst_",file.names[i],"_",out.names[j-1],".rds"))
     print(paste0(file.names[i],"_",out.names[j-1]))
   }
 }
